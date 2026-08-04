@@ -5,6 +5,8 @@ interface ToolbarProps {
   onMovePage: (direction: -1 | 1) => void
   addTextMode: boolean
   onToggleAddText: () => void
+  editTextMode: boolean
+  onToggleEditText: () => void
   currentPage: number
   pageCount: number
   onPrevPage: () => void
@@ -20,6 +22,8 @@ export default function Toolbar({
   onMovePage,
   addTextMode,
   onToggleAddText,
+  editTextMode,
+  onToggleEditText,
   currentPage,
   pageCount,
   onPrevPage,
@@ -78,6 +82,13 @@ export default function Toolbar({
         disabled={disabled}
       >
         {addTextMode ? 'Modo texto: ON' : 'Agregar texto'}
+      </button>
+      <button
+        className={editTextMode ? 'active' : ''}
+        onClick={onToggleEditText}
+        disabled={disabled}
+      >
+        {editTextMode ? 'Modo editar: ON' : 'Editar texto'}
       </button>
     </div>
   )

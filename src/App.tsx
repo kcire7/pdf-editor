@@ -9,9 +9,11 @@ import {
   deletePage,
   movePage,
   addTextAnnotations,
+  replaceTextAtItem,
   saveDoc,
   extractText,
   downloadBytes,
+  type PageTextItem,
 } from './lib/pdfEngine'
 import './App.css'
 
@@ -21,6 +23,7 @@ function App() {
   const [pageCount, setPageCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [addTextMode, setAddTextMode] = useState(false)
+  const [editTextMode, setEditTextMode] = useState(false)
   const [extractedText, setExtractedText] = useState('')
   const [fileName, setFileName] = useState('documento.pdf')
   const [busy, setBusy] = useState(false)
@@ -108,6 +111,12 @@ function App() {
     })
   }
 
+  function handleReplaceText(item: PageTextItem, newText: string) {
+    withPdfLibDoc((doc) => {
+      replaceTextAtItem(doc, currentPage - 1, item, newText)
+    })
+  }
+
   function handleSave() {
     if (!pdfBytes) return
     downloadBytes(pdfBytes.slice(), fileName, 'application/pdf')
@@ -146,7 +155,15 @@ function App() {
         onDeletePage={handleDeletePage}
         onMovePage={handleMovePage}
         addTextMode={addTextMode}
-        onToggleAddText={() => setAddTextMode((mode) => !mode)}
+        onToggleAddText={() => {
+          setAddTextMode((mode) => !mode)
+          setEditTextMode(false)
+        }}
+        editTextMode={editTextMode}
+        onToggleEditText={() => {
+          setEditTextMode((mode) => !mode)
+          setAddTextMode(false)
+        }}
         currentPage={currentPage}
         pageCount={pageCount}
         onPrevPage={() => setCurrentPage((page) => Math.max(1, page - 1))}
@@ -163,7 +180,9 @@ function App() {
           pdfjsDoc={pdfjsDoc}
           pageNumber={currentPage}
           addTextMode={addTextMode}
+          editTextMode={editTextMode}
           onAddText={handleAddText}
+          onReplaceText={handleReplaceText}
         />
         <TextPanel
           text={extractedText}

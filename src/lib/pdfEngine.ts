@@ -12,6 +12,14 @@ export interface TextAnnotation {
   size: number
 }
 
+export interface PageTextItem {
+  str: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export async function loadPdfDoc(bytes: ArrayBuffer) {
   return PDFDocument.load(bytes)
 }
@@ -48,6 +56,55 @@ export async function extractText(pdfjsDoc: pdfjsLib.PDFDocumentProxy) {
     pageTexts.push(text)
   }
   return pageTexts.join('\n\n')
+}
+
+export async function getPageTextItems(
+  pdfjsDoc: pdfjsLib.PDFDocumentProxy,
+  pageNumber: number,
+) {
+  const page = await pdfjsDoc.getPage(pageNumber)
+  const [content, viewport] = await Promise.all([
+    page.getTextContent(),
+    page.getViewport({ scale: 1 }),
+  ])
+  const items: PageTextItem[] = []
+  for (const item of content.items) {
+    if (!('str' in item) || !item.str.trim()) continue
+    items.push({
+      str: item.str,
+      x: item.transform[4],
+      y: item.transform[5],
+      width: item.width,
+      height: item.height,
+    })
+  }
+  return { items, pageHeight: viewport.height }
+}
+
+export async function replaceTextAtItem(
+  doc: PDFDocument,
+  pageIndex: number,
+  item: PageTextItem,
+  newText: string,
+) {
+  const page = doc.getPages()[pageIndex]
+  if (!page) return
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+
+  page.drawRectangle({
+    x: item.x - 1,
+    y: item.y - item.height * 0.25,
+    width: item.width + 2,
+    height: item.height * 1.15,
+    color: rgb(1, 1, 1),
+  })
+  page.drawText(newText, {
+    x: item.x,
+    y: item.y,
+    size: item.height,
+    font,
+    color: rgb(0, 0, 0),
+  })
 }
 
 export function deletePage(doc: PDFDocument, pageIndex: number) {
