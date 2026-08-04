@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -15,4 +15,6 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  background: #ffffff;
+  color: #1a1a1a;
 }

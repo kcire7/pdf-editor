@@ -39,6 +39,7 @@
   border: 1px solid #ccc;
   border-radius: 6px;
   background: #fafafa;
+  color: #1a1a1a;
   cursor: pointer;
   font-size: 0.85rem;
 }
@@ -144,11 +145,14 @@
   font-size: 0.85rem;
   padding: 0.2rem 0.3rem;
   width: 140px;
+  background: #ffffff;
+  color: #1a1a1a;
 }
 
 .text-input-overlay button {
   border: none;
   background: #f3f4f6;
+  color: #1a1a1a;
   border-radius: 3px;
   cursor: pointer;
   padding: 0.1rem 0.4rem;
@@ -175,6 +179,21 @@
   margin: 0;
 }
 
+.text-panel-header button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fafafa;
+  color: #1a1a1a;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.text-panel-header button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .text-panel textarea {
   flex: 1;
   resize: none;
@@ -183,4 +202,6 @@
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
+  background: #ffffff;
+  color: #1a1a1a;
 }
