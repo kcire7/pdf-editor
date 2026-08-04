@@ -17,6 +17,8 @@ import {
 } from './lib/pdfEngine'
 import './App.css'
 
+const MAX_HISTORY = 20
+
 function App() {
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null)
   const [pdfjsDoc, setPdfjsDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
@@ -28,6 +30,7 @@ function App() {
   const [fileName, setFileName] = useState('documento.pdf')
   const [busy, setBusy] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [history, setHistory] = useState<Uint8Array[]>([])
 
   useEffect(() => {
     if (!pdfBytes) {
@@ -61,6 +64,7 @@ function App() {
       setFileName(file.name)
       setExtractedText('')
       setCurrentPage(1)
+      setHistory([])
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Error al leer el archivo')
     } finally {
@@ -73,15 +77,24 @@ function App() {
     setBusy(true)
     setErrorMessage(null)
     try {
+      const previousBytes = pdfBytes
       const doc = await loadPdfDoc(pdfBytes.slice().buffer as ArrayBuffer)
       await mutate(doc)
       const newBytes = await saveDoc(doc)
+      setHistory((h) => [...h, previousBytes].slice(-MAX_HISTORY))
       setPdfBytes(newBytes)
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Error al editar el PDF')
     } finally {
       setBusy(false)
     }
+  }
+
+  function handleUndo() {
+    if (history.length === 0) return
+    const previous = history[history.length - 1]
+    setHistory((h) => h.slice(0, -1))
+    setPdfBytes(previous)
   }
 
   function handleDeletePage() {
@@ -152,6 +165,8 @@ function App() {
       <Toolbar
         onOpenFile={handleOpenFile}
         onSave={handleSave}
+        onUndo={handleUndo}
+        canUndo={history.length > 0}
         onDeletePage={handleDeletePage}
         onMovePage={handleMovePage}
         addTextMode={addTextMode}

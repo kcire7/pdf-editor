@@ -1,6 +1,8 @@
 interface ToolbarProps {
   onOpenFile: (file: File) => void
   onSave: () => void
+  onUndo: () => void
+  canUndo: boolean
   onDeletePage: () => void
   onMovePage: (direction: -1 | 1) => void
   addTextMode: boolean
@@ -18,6 +20,8 @@ interface ToolbarProps {
 export default function Toolbar({
   onOpenFile,
   onSave,
+  onUndo,
+  canUndo,
   onDeletePage,
   onMovePage,
   addTextMode,
@@ -45,6 +49,9 @@ export default function Toolbar({
       </label>
       <button onClick={onSave} disabled={disabled}>
         Guardar PDF
+      </button>
+      <button onClick={onUndo} disabled={disabled || !canUndo}>
+        Deshacer
       </button>
       <button onClick={onExtractText} disabled={disabled}>
         Extraer texto
