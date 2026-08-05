@@ -1,9 +1,45 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --muted-text: #666666;
+  --border: #dddddd;
+  --border-soft: #eeeeee;
+  --panel-bg: #fafafa;
+  --canvas-bg: #e5e7eb;
+  --input-bg: #ffffff;
+  --accent: #2563eb;
+  --accent-text: #ffffff;
+  --overlay-btn-bg: #f3f4f6;
+  --error-bg: #fee2e2;
+  --error-text: #991b1b;
+  --status-bg: #dbeafe;
+  --status-text: #1e40af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171d;
+    --text: #e5e7eb;
+    --muted-text: #9ca3af;
+    --border: #33353f;
+    --border-soft: #2a2c35;
+    --panel-bg: #1f2028;
+    --canvas-bg: #0f1013;
+    --input-bg: #1f2028;
+    --accent: #3b82f6;
+    --accent-text: #ffffff;
+    --overlay-btn-bg: #2a2c35;
+    --error-bg: #4c1d1d;
+    --error-text: #fca5a5;
+    --status-bg: #1e3a5f;
+    --status-text: #93c5fd;
+  }
 }
 
 * {
@@ -15,6 +51,6 @@ body,
 #root {
   height: 100%;
   margin: 0;
-  background: #ffffff;
-  color: #1a1a1a;
+  background: var(--bg);
+  color: var(--text);
 }

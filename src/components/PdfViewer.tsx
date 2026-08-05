@@ -15,7 +15,9 @@ interface PdfViewerProps {
   onReplaceText: (item: PageTextItem, newText: string) => void
 }
 
-const SCALE = 1.3
+const MIN_SCALE = 0.4
+const MAX_SCALE = 3
+const VIEWER_PADDING = 32
 
 interface PendingEdit {
   overlayX: number
@@ -33,6 +35,7 @@ export default function PdfViewer({
   onAddText,
   onReplaceText,
 }: PdfViewerProps) {
+  const viewerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +43,38 @@ export default function PdfViewer({
   const [inputValue, setInputValue] = useState('')
   const [textItems, setTextItems] = useState<PageTextItem[]>([])
   const [pageHeight, setPageHeight] = useState(0)
+  const [scale, setScale] = useState(1)
+
+  useEffect(() => {
+    if (!pdfjsDoc || !viewerRef.current) return
+    let cancelled = false
+    const viewer = viewerRef.current
+
+    async function updateScale() {
+      if (!pdfjsDoc) return
+      try {
+        const page = await pdfjsDoc.getPage(pageNumber)
+        if (cancelled) return
+        const naturalWidth = page.getViewport({ scale: 1 }).width
+        const available = viewer.clientWidth - VIEWER_PADDING
+        const next = Math.min(
+          MAX_SCALE,
+          Math.max(MIN_SCALE, available / naturalWidth),
+        )
+        setScale(next)
+      } catch {
+        // ignore; render effect will surface a real error if the page fails to load
+      }
+    }
+
+    updateScale()
+    const observer = new ResizeObserver(() => updateScale())
+    observer.observe(viewer)
+    return () => {
+      cancelled = true
+      observer.disconnect()
+    }
+  }, [pdfjsDoc, pageNumber])
 
   useEffect(() => {
     if (!pdfjsDoc || !canvasRef.current) return
@@ -47,7 +82,7 @@ export default function PdfViewer({
     let cancelled = false
     let renderTask: { cancel: () => void; promise: Promise<void> } | null = null
 
-    renderPageToCanvas(pdfjsDoc, pageNumber, canvasRef.current, SCALE)
+    renderPageToCanvas(pdfjsDoc, pageNumber, canvasRef.current, scale)
       .then((task) => {
         if (cancelled) {
           task.cancel()
@@ -65,7 +100,7 @@ export default function PdfViewer({
       cancelled = true
       renderTask?.cancel()
     }
-  }, [pdfjsDoc, pageNumber])
+  }, [pdfjsDoc, pageNumber, scale])
 
   useEffect(() => {
     if (!pdfjsDoc) {
@@ -102,8 +137,8 @@ export default function PdfViewer({
     const containerRect = containerRef.current.getBoundingClientRect()
     const scaleX = canvas.width / canvasRect.width
     const scaleY = canvas.height / canvasRect.height
-    const clickTopX = ((event.clientX - canvasRect.left) * scaleX) / SCALE
-    const clickTopY = ((event.clientY - canvasRect.top) * scaleY) / SCALE
+    const clickTopX = ((event.clientX - canvasRect.left) * scaleX) / scale
+    const clickTopY = ((event.clientY - canvasRect.top) * scaleY) / scale
 
     if (editTextMode) {
       const clickBottomY = pageHeight - clickTopY
@@ -116,8 +151,8 @@ export default function PdfViewer({
       )
       if (!hit) return
       setPending({
-        overlayX: hit.x * SCALE,
-        overlayY: (pageHeight - hit.y - hit.height) * SCALE,
+        overlayX: hit.x * scale,
+        overlayY: (pageHeight - hit.y - hit.height) * scale,
         pdfX: 0,
         pdfY: 0,
         replaceItem: hit,
@@ -160,7 +195,7 @@ export default function PdfViewer({
   }
 
   return (
-    <div className="pdf-viewer">
+    <div className="pdf-viewer" ref={viewerRef}>
       {error && <p className="error">{error}</p>}
       <div className="pdf-page-container" ref={containerRef}>
         <canvas
