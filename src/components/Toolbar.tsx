@@ -9,6 +9,10 @@ interface ToolbarProps {
   onToggleAddText: () => void
   editTextMode: boolean
   onToggleEditText: () => void
+  addImageMode: boolean
+  onToggleAddImage: () => void
+  editImageMode: boolean
+  onToggleEditImage: () => void
   currentPage: number
   pageCount: number
   onPrevPage: () => void
@@ -28,6 +32,10 @@ export default function Toolbar({
   onToggleAddText,
   editTextMode,
   onToggleEditText,
+  addImageMode,
+  onToggleAddImage,
+  editImageMode,
+  onToggleEditImage,
   currentPage,
   pageCount,
   onPrevPage,
@@ -96,6 +104,23 @@ export default function Toolbar({
         disabled={disabled}
       >
         {editTextMode ? 'Modo editar: ON' : 'Editar texto'}
+      </button>
+
+      <span className="divider" />
+
+      <button
+        className={addImageMode ? 'active' : ''}
+        onClick={onToggleAddImage}
+        disabled={disabled}
+      >
+        {addImageMode ? 'Modo imagen: ON' : 'Agregar imagen'}
+      </button>
+      <button
+        className={editImageMode ? 'active' : ''}
+        onClick={onToggleEditImage}
+        disabled={disabled}
+      >
+        {editImageMode ? 'Modo imagen: ON' : 'Editar imagen'}
       </button>
     </div>
   )

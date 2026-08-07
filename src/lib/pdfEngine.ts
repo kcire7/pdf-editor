@@ -20,6 +20,23 @@ export interface PageTextItem {
   height: number
 }
 
+export interface ImageAnnotation {
+  pageIndex: number
+  x: number
+  y: number
+  width: number
+  height: number
+  bytes: Uint8Array
+  mimeType: 'image/png' | 'image/jpeg'
+}
+
+export interface PageImageItem {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export async function loadPdfDoc(bytes: ArrayBuffer) {
   return PDFDocument.load(bytes)
 }
@@ -79,6 +96,101 @@ export async function getPageTextItems(
     })
   }
   return { items, pageHeight: viewport.height }
+}
+
+export async function getPageImageItems(
+  pdfjsDoc: pdfjsLib.PDFDocumentProxy,
+  pageNumber: number,
+) {
+  const page = await pdfjsDoc.getPage(pageNumber)
+  const opList = await page.getOperatorList()
+
+  type Matrix = [number, number, number, number, number, number]
+  const identity: Matrix = [1, 0, 0, 1, 0, 0]
+
+  function multiply(m1: Matrix, m2: Matrix): Matrix {
+    return [
+      m1[0] * m2[0] + m1[1] * m2[2],
+      m1[0] * m2[1] + m1[1] * m2[3],
+      m1[2] * m2[0] + m1[3] * m2[2],
+      m1[2] * m2[1] + m1[3] * m2[3],
+      m1[4] * m2[0] + m1[5] * m2[2] + m2[4],
+      m1[4] * m2[1] + m1[5] * m2[3] + m2[5],
+    ]
+  }
+
+  const items: PageImageItem[] = []
+  const stack: Matrix[] = []
+  let ctm: Matrix = identity
+
+  for (let i = 0; i < opList.fnArray.length; i++) {
+    const fn = opList.fnArray[i]
+    const args = opList.argsArray[i]
+    if (fn === pdfjsLib.OPS.save) {
+      stack.push(ctm)
+    } else if (fn === pdfjsLib.OPS.restore) {
+      ctm = stack.pop() ?? identity
+    } else if (fn === pdfjsLib.OPS.transform) {
+      ctm = multiply(args as Matrix, ctm)
+    } else if (fn === pdfjsLib.OPS.paintImageXObject) {
+      const width = Math.hypot(ctm[0], ctm[1])
+      const height = Math.hypot(ctm[2], ctm[3])
+      if (width > 1 && height > 1) {
+        items.push({ x: ctm[4], y: ctm[5], width, height })
+      }
+    }
+  }
+
+  return items
+}
+
+async function embedImage(
+  doc: PDFDocument,
+  bytes: Uint8Array,
+  mimeType: 'image/png' | 'image/jpeg',
+) {
+  return mimeType === 'image/png' ? doc.embedPng(bytes) : doc.embedJpg(bytes)
+}
+
+export async function addImageAnnotation(
+  doc: PDFDocument,
+  annotation: ImageAnnotation,
+) {
+  const page = doc.getPages()[annotation.pageIndex]
+  if (!page) return
+  const image = await embedImage(doc, annotation.bytes, annotation.mimeType)
+  const { height: pageHeight } = page.getSize()
+  page.drawImage(image, {
+    x: annotation.x,
+    y: pageHeight - annotation.y - annotation.height,
+    width: annotation.width,
+    height: annotation.height,
+  })
+}
+
+export async function replaceImageAtItem(
+  doc: PDFDocument,
+  pageIndex: number,
+  item: PageImageItem,
+  bytes: Uint8Array,
+  mimeType: 'image/png' | 'image/jpeg',
+) {
+  const page = doc.getPages()[pageIndex]
+  if (!page) return
+  const image = await embedImage(doc, bytes, mimeType)
+  page.drawRectangle({
+    x: item.x,
+    y: item.y,
+    width: item.width,
+    height: item.height,
+    color: rgb(1, 1, 1),
+  })
+  page.drawImage(image, {
+    x: item.x,
+    y: item.y,
+    width: item.width,
+    height: item.height,
+  })
 }
 
 export async function replaceTextAtItem(

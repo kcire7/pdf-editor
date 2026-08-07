@@ -10,14 +10,18 @@ import {
   movePage,
   addTextAnnotations,
   replaceTextAtItem,
+  addImageAnnotation,
+  replaceImageAtItem,
   saveDoc,
   extractText,
   downloadBytes,
   type PageTextItem,
+  type PageImageItem,
 } from './lib/pdfEngine'
 import './App.css'
 
 const MAX_HISTORY = 20
+const MAX_IMAGE_DIMENSION = 180
 
 function App() {
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null)
@@ -26,6 +30,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1)
   const [addTextMode, setAddTextMode] = useState(false)
   const [editTextMode, setEditTextMode] = useState(false)
+  const [addImageMode, setAddImageMode] = useState(false)
+  const [editImageMode, setEditImageMode] = useState(false)
   const [extractedText, setExtractedText] = useState('')
   const [fileName, setFileName] = useState('documento.pdf')
   const [busy, setBusy] = useState(false)
@@ -130,6 +136,47 @@ function App() {
     })
   }
 
+  function handleAddImage(
+    x: number,
+    y: number,
+    bytes: Uint8Array,
+    mimeType: 'image/png' | 'image/jpeg',
+    naturalWidth: number,
+    naturalHeight: number,
+  ) {
+    const aspect = naturalWidth / naturalHeight
+    let width = naturalWidth
+    let height = naturalHeight
+    if (width > height && width > MAX_IMAGE_DIMENSION) {
+      width = MAX_IMAGE_DIMENSION
+      height = width / aspect
+    } else if (height >= width && height > MAX_IMAGE_DIMENSION) {
+      height = MAX_IMAGE_DIMENSION
+      width = height * aspect
+    }
+    withPdfLibDoc((doc) => {
+      addImageAnnotation(doc, {
+        pageIndex: currentPage - 1,
+        x,
+        y,
+        width,
+        height,
+        bytes,
+        mimeType,
+      })
+    })
+  }
+
+  function handleReplaceImage(
+    item: PageImageItem,
+    bytes: Uint8Array,
+    mimeType: 'image/png' | 'image/jpeg',
+  ) {
+    withPdfLibDoc((doc) => {
+      replaceImageAtItem(doc, currentPage - 1, item, bytes, mimeType)
+    })
+  }
+
   function handleSave() {
     if (!pdfBytes) return
     downloadBytes(pdfBytes.slice(), fileName, 'application/pdf')
@@ -173,11 +220,29 @@ function App() {
         onToggleAddText={() => {
           setAddTextMode((mode) => !mode)
           setEditTextMode(false)
+          setAddImageMode(false)
+          setEditImageMode(false)
         }}
         editTextMode={editTextMode}
         onToggleEditText={() => {
           setEditTextMode((mode) => !mode)
           setAddTextMode(false)
+          setAddImageMode(false)
+          setEditImageMode(false)
+        }}
+        addImageMode={addImageMode}
+        onToggleAddImage={() => {
+          setAddImageMode((mode) => !mode)
+          setAddTextMode(false)
+          setEditTextMode(false)
+          setEditImageMode(false)
+        }}
+        editImageMode={editImageMode}
+        onToggleEditImage={() => {
+          setEditImageMode((mode) => !mode)
+          setAddTextMode(false)
+          setEditTextMode(false)
+          setAddImageMode(false)
         }}
         currentPage={currentPage}
         pageCount={pageCount}
@@ -196,8 +261,12 @@ function App() {
           pageNumber={currentPage}
           addTextMode={addTextMode}
           editTextMode={editTextMode}
+          addImageMode={addImageMode}
+          editImageMode={editImageMode}
           onAddText={handleAddText}
           onReplaceText={handleReplaceText}
+          onAddImage={handleAddImage}
+          onReplaceImage={handleReplaceImage}
         />
         <TextPanel
           text={extractedText}
